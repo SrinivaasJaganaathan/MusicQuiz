@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kids Music Quiz - Learn & Play!</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated Background Elements */
+        .floating-notes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .note {
+            position: absolute;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.3);
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .note:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .note:nth-child(2) { left: 20%; animation-delay: 1s; }
+        .note:nth-child(3) { left: 30%; animation-delay: 2s; }
+        .note:nth-child(4) { left: 40%; animation-delay: 3s; }
+        .note:nth-child(5) { left: 50%; animation-delay: 4s; }
+        .note:nth-child(6) { left: 60%; animation-delay: 5s; }
+        .note:nth-child(7) { left: 70%; animation-delay: 1.5s; }
+        .note:nth-child(8) { left: 80%; animation-delay: 2.5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            50% { transform: translateY(-10vh) rotate(180deg); }
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+            min-height: calc(100vh - 80px);
+        }
+
+        /* Screen Styles */
+        .screen {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Typography */
+        h1 {
+            text-align: center;
+            color: #8B5CF6;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #6366F1;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+        }
+
+        p {
+            text-align: center;
+            color: #374151;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* Instrument Selection Grid */
+        .instruments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .instrument-card {
+            background: linear-gradient(135deg, #8B5CF6, #EC4899);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .instrument-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .instrument-card:hover::before {
+            left: 100%;
+        }
+
+        .instrument-card:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 15px 35px rgba(139, 92, 246, 0.4);
+        }
+
+        .instrument-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .instrument-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .instrument-desc {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Quiz Question Styles */
+        .question-counter {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #6366F1;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .question-text {
+            background: linear-gradient(135deg, #F3F4F6, #E5E7EB);
+            padding: 25px;
+            border-radius: 15px;
+            font-size: 1.3rem;
+            color: #1F2937;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #8B5CF6;
+        }
+
+        .answers-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .answer-btn {
+            padding: 20px;
+            border: 3px solid #E5E7EB;
+            border-radius: 12px;
+            background: white;
+            color: #374151;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .answer-btn:hover {
+            border-color: #8B5CF6;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .answer-btn.correct {
+            background: #10B981;
+            color: white;
+            border-color: #059669;
+            animation: correctPulse 0.6s ease;
+        }
+
+        .answer-btn.wrong {
+            background: #EF4444;
+            color: white;
+            border-color: #DC2626;
+            animation: wrongShake 0.6s ease;
+        }
+
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+
+        /* Action Buttons */
+        .btn {
+            background: linear-gradient(135deg, #8B5CF6, #6366F1);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-center {
+            display: block;
+            margin: 20px auto;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Results Screen */
+        .score-display {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .score-number {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #8B5CF6;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        .score-text {
+            font-size: 1.3rem;
+            color: #6B7280;
+            margin-bottom: 20px;
+        }
+
+        .nickname {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #EC4899;
+            margin: 20px 0;
+            text-shadow: 1px 1px 4px rgba(236, 72, 153, 0.3);
+        }
+
+        .encouragement {
+            font-size: 1.2rem;
+            color: #059669;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+
+        /* Social Sharing Buttons */
+        .share-section {
+            margin: 30px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, #F8FAFC, #E2E8F0);
+            border-radius: 15px;
+            border: 2px solid #E5E7EB;
+        }
+
+        .share-title {
+            font-size: 1.3rem;
+            color: #374151;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .share-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .share-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .share-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .share-btn.linkedin {
+            background: linear-gradient(135deg, #0077B5, #005885);
+        }
+
+        .share-btn.instagram {
+            background: linear-gradient(135deg, #E4405F, #C13584, #833AB4);
+        }
+
+        .share-btn.twitter {
+            background: linear-gradient(135deg, #1DA1F2, #0d8bd9);
+        }
+
+        .share-icon {
+            font-size: 1.2rem;
+        }
+
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .home-btn {
+            background: #8B5CF6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .home-btn:hover {
+            background: #7C3AED;
+            transform: translateY(-2px);
+        }
+
+        .social-banner {
+            background: linear-gradient(135deg, #EC4899, #F59E0B);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .social-banner:hover {
+            transform: scale(1.05);
+            color: white;
+        }
+
+            .share-section {
+                margin-bottom: 20px;
+            }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .instruments-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+            }
+
+            .answers-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .answer-btn {
+                padding: 15px;
+                min-height: 60px;
+                font-size: 1rem;
+            }
+
+            .score-number {
+                font-size: 3rem;
+            }
+
+            .nickname {
+                font-size: 1.5rem;
+            }
+
+            .share-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .share-btn {
+                width: 100%;
+                max-width: 250px;
+                justify-content: center;
+            }
+
+            .footer {
+                flex-direction: column;
+                gap: 10px;
+                padding: 12px 15px;
+            }
+
+            .social-banner {
+                font-size: 0.8rem;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .instruments-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .instrument-card {
+                padding: 20px;
+            }
+
+            .btn-group {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Musical Notes Background -->
+    <div class="floating-notes">
+        <div class="note">♪</div>
+        <div class="note">♫</div>
+        <div class="note">♪</div>
+        <div class="note">♬</div>
+        <div class="note">♫</div>
+        <div class="note">♪</div>
+        <div class="note">♬</div>
+        <div class="note">♫</div>
+    </div>
+
+    <div class="container">
+        <!-- Home Screen -->
+        <div id="homeScreen" class="screen active">
+            <h1>🎵 Kids Music Quiz 🎵</h1>
+            <p>Welcome to the most fun music learning experience! Choose your favorite instrument and test your musical knowledge. Each quiz has 15 questions that will challenge and teach you about music!</p>
+            
+            <div class="instruments-grid">
+                <div class="instrument-card" onclick="selectInstrument('piano')">
+                    <span class="instrument-icon">🎹</span>
+                    <div class="instrument-name">Piano</div>
+                    <div class="instrument-desc">Keys & Melodies</div>
+                </div>
+                
+                <div class="instrument-card" onclick="selectInstrument('ukulele')">
+                    <span class="instrument-icon">🎸</span>
+                    <div class="instrument-name">Ukulele</div>
+                    <div class="instrument-desc">Hawaiian Strings</div>
+                </div>
+                
+                <div class="instrument-card" onclick="selectInstrument('guitar')">
+                    <span class="instrument-icon">🎸</span>
+                    <div class="instrument-name">Guitar</div>
+                    <div class="instrument-desc">Rock & Strum</div>
+                </div>
+                
+                <div class="instrument-card" onclick="selectInstrument('vocals')">
+                    <span class="instrument-icon">🎤</span>
+                    <div class="instrument-name">Vocals</div>
+                    <div class="instrument-desc">Voice & Singing</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Screen -->
+        <div id="quizScreen" class="screen">
+            <div class="question-counter" id="questionCounter"></div>
+            <div class="question-text" id="questionText"></div>
+            <div class="answers-grid" id="answersGrid"></div>
+            <button class="btn btn-center" id="nextBtn" onclick="nextQuestion()" style="display: none;">Next Question</button>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="resultsScreen" class="screen">
+            <h2>🎉 Quiz Complete! 🎉</h2>
+            <div class="score-display">
+                <div class="score-number" id="finalScore"></div>
+                <div class="score-text">out of 15 questions</div>
+                <div class="nickname" id="playerNickname"></div>
+                <div class="encouragement" id="encouragementText"></div>
+            </div>
+            
+            <!-- Social Sharing Section -->
+            <div class="share-section">
+                <div class="share-title">🎉 Share Your Achievement!</div>
+                <div class="share-buttons">
+                    <button class="share-btn linkedin" onclick="shareToLinkedIn()">
+                        <span class="share-icon">💼</span>
+                        Share on LinkedIn
+                    </button>
+                    <button class="share-btn instagram" onclick="shareToInstagram()">
+                        <span class="share-icon">📸</span>
+                        Share on Instagram
+                    </button>
+                    <button class="share-btn twitter" onclick="shareToTwitter()">
+                        <span class="share-icon">🐦</span>
+                        Share on Twitter
+                    </button>
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn" onclick="playAgain()">Play Again</button>
+                <button class="btn" onclick="goHome()">Choose New Instrument</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fixed Footer -->
+    <div class="footer">
+        <button class="home-btn" onclick="goHome()">🏠 Home</button>
+        <a href="#" class="social-banner" onclick="alert('Follow @MusicSchoolKids on Instagram for more fun music content!')">
+            📱 Follow us on Instagram for more music fun!
+        </a>
+    </div>
+
+    <script>
+        // Quiz Game Logic
+        class MusicQuiz {
+            constructor() {
+                this.currentInstrument = '';
+                this.questions = [];
+                this.currentQuestionIndex = 0;
+                this.score = 0;
+                this.selectedQuestions = [];
+                this.answersRevealed = false;
+                
+                this.initializeQuestions();
+            }
+
+            // Complete question database for all instruments
+            initializeQuestions() {
+                this.questionBank = {
+                    piano: [
+                        {
+                            question: "How many keys does a full-size piano have?",
+                            answers: ["88", "76", "61", "100"],
+                            correct: 0
+                        },
+                        {
+                            question: "What are the black keys on a piano called?",
+                            answers: ["Sharps and flats", "High notes", "Low notes", "Major keys"],
+                            correct: 0
+                        },
+                        {
+                            question: "Which hand typically plays the melody in piano music?",
+                            answers: ["Right hand", "Left hand", "Both hands equally", "It depends on the song"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the musical term for playing piano very softly?",
+                            answers: ["Pianissimo", "Fortissimo", "Allegro", "Adagio"],
+                            correct: 0
+                        },
+                        {
+                            question: "How many white keys are there on a piano?",
+                            answers: ["52", "48", "44", "56"],
+                            correct: 0
+                        },
+                        {
+                            question: "What does the sustain pedal on a piano do?",
+                            answers: ["Makes notes last longer", "Makes notes louder", "Changes the pitch", "Makes notes softer"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is Middle C on the piano?",
+                            answers: ["The C note in the middle of the keyboard", "The loudest C note", "The highest C note", "The first key on the piano"],
+                            correct: 0
+                        },
+                        {
+                            question: "What are the white keys on a piano named after?",
+                            answers: ["Letters A through G", "Numbers 1 through 7", "Colors", "Shapes"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is a piano scale?",
+                            answers: ["A series of musical notes in order", "The size of the piano", "How loud to play", "The age of the piano"],
+                            correct: 0
+                        },
+                        {
+                            question: "Who is considered one of the greatest classical piano composers?",
+                            answers: ["Wolfgang Amadeus Mozart", "Elvis Presley", "The Beatles", "Taylor Swift"],
+                            correct: 0
+                        },
+                        {
+                            question: "What does 'forte' mean in piano music?",
+                            answers: ["Play loudly", "Play softly", "Play fast", "Play slow"],
+                            correct: 0
+                        },
+                        {
+                            question: "How many pedals does a typical piano have?",
+                            answers: ["3", "2", "4", "1"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is an octave on the piano?",
+                            answers: ["8 notes from one note to the same note higher", "10 keys in a row", "All the black keys", "Half of the keyboard"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the pattern of black keys on a piano?",
+                            answers: ["Groups of 2 and 3", "Groups of 4 and 4", "All evenly spaced", "Random placement"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is 'staccato' playing?",
+                            answers: ["Short, detached notes", "Long, connected notes", "Very loud notes", "Very soft notes"],
+                            correct: 0
+                        },
+                        {
+                            question: "What instrument family does the piano belong to?",
+                            answers: ["Percussion", "String", "Wind", "Brass"],
+                            correct: 0
+                        },
+                        {
+                            question: "What creates the sound in a piano?",
+                            answers: ["Hammers hitting strings", "Air through tubes", "Electronic speakers", "Plucking strings"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is a piano chord?",
+                            answers: ["Playing multiple notes together", "Playing one note very loud", "Playing very fast", "Playing with one finger"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the musical staff?",
+                            answers: ["Five lines where music notes are written", "The piano bench", "The piano lid", "The piano keys"],
+                            correct: 0
+                        },
+                        {
+                            question: "What does 'allegro' mean in music?",
+                            answers: ["Fast and lively", "Slow and gentle", "Very loud", "Very soft"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is a piano duet?",
+                            answers: ["Two people playing piano together", "One person playing two pianos", "Playing with four hands", "Playing very loudly"],
+                            correct: 0
+                        }
+                    ],
+                    ukulele: [
+                        {
+                            question: "How many strings does a ukulele typically have?",
+                            answers: ["4", "6", "3", "5"],
+                            correct: 0
+                        },
+                        {
+                            question: "Where did the ukulele originally come from?",
+                            answers: ["Hawaii", "Spain", "Mexico", "Jamaica"],
+                            correct: 0
+                        },
+                        {
+                            question: "What are the standard tuning notes for a ukulele?",
+                            answers: ["G-C-E-A", "E-A-D-G", "C-F-B-E", "A-D-G-C"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the small piece you use to pluck ukulele strings called?",
+                            answers: ["Pick or plectrum", "Strum", "Finger", "Bow"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the most common size of ukulele?",
+                            answers: ["Soprano", "Concert", "Tenor", "Baritone"],
+                            correct: 0
+                        },
+                        {
+                            question: "What does 'ukulele' mean in Hawaiian?",
+                            answers: ["Jumping flea", "Small guitar", "Happy song", "Island music"],
+                            correct: 0
+                        },
+                        {
+                            question: "Which finger is typically used to press the first fret?",
+                            answers: ["Index finger", "Middle finger", "Ring finger", "Pinky finger"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is a ukulele chord?",
+                            answers: ["Multiple strings pressed to make harmony", "One string played alone", "The wooden body", "The tuning pegs"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is strumming on a ukulele?",
+                            answers: ["Moving your hand across all strings", "Pressing one string", "Turning the tuning pegs", "Holding the neck"],
+                            correct: 0
+                        },
+                        {
+                            question: "What are the metal bars across the ukulele neck called?",
+                            answers: ["Frets", "Strings", "Picks", "Chords"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the body of the ukulele usually made of?",
+                            answers: ["Wood", "Plastic", "Metal", "Glass"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the easiest chord to play on ukulele?",
+                            answers: ["C major", "G major", "F major", "B major"],
+                            correct: 0
+                        },
+                        {
+                            question: "How do you tune a ukulele?",
+                            answers: ["Turn the tuning pegs", "Press the frets", "Strum harder", "Change the strings"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the difference between up-strumming and down-strumming?",
+                            answers: ["Direction you move your hand", "How loud you play", "Which strings you hit", "How fast you play"],
+                            correct: 0
+                        },
+                        {
+                            question: "What famous song is often first learned on ukulele?",
+                            answers: ["Somewhere Over the Rainbow", "Happy Birthday", "Twinkle Twinkle Little Star", "Mary Had a Little Lamb"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is a ukulele bridge?",
+                            answers: ["Part that holds the strings on the body", "The neck of the ukulele", "A type of chord", "A playing technique"],
+                            correct: 0
+                        },
+                        {
+                            question: "What makes a concert ukulele different from a soprano?",
+                            answers: ["It's larger and has a deeper sound", "It has more strings", "It's made of different wood", "It's played differently"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is fingerpicking on ukulele?",
+                            answers: ["Plucking strings with individual fingers", "Using a pick", "Pressing multiple frets", "Tuning the strings"],
+                            correct: 0
+                        },
+                        {
+                            question: "What should you check before playing your ukulele?",
+                            answers: ["If it's in tune", "If it's clean", "If it's expensive", "If it's new"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is a ukulele capo?",
+                            answers: ["Device that clamps across strings to change pitch", "A type of pick", "A storage case", "A tuning device"],
+                            correct: 0
+                        },
+                        {
+                            question: "Which famous musician helped make ukulele popular worldwide?",
+                            answers: ["Israel Kamakawiwoʻole", "Elvis Presley", "Bob Dylan", "John Lennon"],
+                            correct: 0
+                        }
+                    ],
+                    guitar: [
+                        {
+                            question: "How many strings does a standard guitar have?",
+                            answers: ["6", "4", "8", "5"],
+                            correct: 0
+                        },
+                        {
+                            question: "What are the thickest and thinnest strings on a guitar called?",
+                            answers: ["Low E (thick) and High E (thin)", "A and G", "Bass and Treble", "Major and Minor"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the wooden part of the guitar that amplifies sound called?",
+                            answers: ["Body or soundboard", "Neck", "Bridge", "Headstock"],
+                            correct: 0
+                        },
+                        {
+                            question: "What do you call the metal bars across the guitar neck?",
+                            answers: ["Frets", "Strings", "Picks", "Chords"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the most common way to play a guitar?",
+                            answers: ["Strumming with fingers or a pick", "Hitting it like a drum", "Blowing into it", "Shaking it"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is a guitar pick used for?",
+                            answers: ["Strumming or plucking strings", "Tuning the guitar", "Cleaning the guitar", "Holding the guitar"],
+                            correct: 0
+                        },
+                        {
+                            question: "What does it mean to 'fret' a note on guitar?",
+                            answers: ["Press a string against a fret", "Strum all strings", "Tune the guitar", "Change the strings"],
+                            correct: 0
+                        },
+                        {
+                            question: "What are the two main types of guitars?",
+                            answers: ["Acoustic and Electric", "Big and Small", "Wood and Metal", "Old and New"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is a guitar chord?",
+                            answers: ["Multiple strings played together", "One string played alone", "The guitar case", "The guitar strap"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the sound hole on an acoustic guitar for?",
+                            answers: ["To amplify and project sound", "To hold picks", "To tune the guitar", "To look pretty"],
+                            correct: 0
+                        },
+                        {
+                            question: "How do you tune a guitar?",
+                            answers: ["Turn the tuning pegs", "Press the frets", "Strum harder", "Change all strings"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the standard tuning for guitar strings?",
+                            answers: ["E-A-D-G-B-E", "A-B-C-D-E-F", "G-C-E-A-D-G", "C-F-B-E-A-D"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is fingerpicking?",
+                            answers: ["Plucking strings with individual fingers", "Using only a pick", "Pressing multiple frets", "Tuning each string"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is a guitar amplifier used for?",
+                            answers: ["Making electric guitars louder", "Storing the guitar", "Tuning the guitar", "Cleaning the guitar"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is a guitar capo?",
+                            answers: ["Device that clamps across strings", "A type of pick", "A guitar case", "A tuning device"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the first chord most people learn on guitar?",
+                            answers: ["G major", "F major", "B major", "C# minor"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is power chord?",
+                            answers: ["A simple two or three note chord", "Playing very loudly", "An electric guitar only", "A difficult chord"],
+                            correct: 0
+                        },
+                        {
+                            question: "What are guitar tabs?",
+                            answers: ["A way to write guitar music using numbers", "Guitar accessories", "Types of guitars", "Guitar maintenance"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the bridge on a guitar?",
+                            answers: ["Part that holds strings on the body", "The neck of the guitar", "A playing technique", "A type of chord"],
+                            correct: 0
+                        },
+                        {
+                            question: "What should you do to take care of your guitar?",
+                            answers: ["Keep it clean and properly stored", "Never touch it", "Play it very loudly", "Leave it in the sun"],
+                            correct: 0
+                        },
+                        {
+                            question: "What famous guitarist is known for playing with his teeth?",
+                            answers: ["Jimi Hendrix", "Elvis Presley", "Taylor Swift", "Beethoven"],
+                            correct: 0
+                        }
+                    ],
+                    vocals: [
+                        {
+                            question: "What is your voice box called?",
+                            answers: ["Larynx", "Lungs", "Throat", "Mouth"],
+                            correct: 0
+                        },
+                        {
+                            question: "What do you need to do before singing?",
+                            answers: ["Warm up your voice", "Drink cold water", "Yell loudly", "Hold your breath"],
+                            correct: 0
+                        },
+                        {
+                            question: "What are the parts of your body that help you sing?",
+                            answers: ["Lungs, diaphragm, larynx, and mouth", "Just your mouth", "Only your throat", "Your hands and feet"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is pitch in singing?",
+                            answers: ["How high or low your voice sounds", "How loud you sing", "How fast you sing", "How long you sing"],
+                            correct: 0
+                        },
+                        {
+                            question: "What should you drink to keep your voice healthy?",
+                            answers: ["Water", "Soda", "Very hot drinks", "Very cold drinks"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is vibrato in singing?",
+                            answers: ["A slight shake or wobble in your voice", "Singing very loudly", "Singing very quietly", "Singing very fast"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the diaphragm?",
+                            answers: ["A muscle that helps you breathe and sing", "Your throat", "Your tongue", "Your lips"],
+                            correct: 0
+                        },
+                        {
+                            question: "What are vocal cords?",
+                            answers: ["Muscles in your throat that vibrate to make sound", "Strings in your mouth", "Bones in your neck", "Teeth in your mouth"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is good posture for singing?",
+                            answers: ["Standing or sitting up straight", "Lying down flat", "Bending over", "Leaning to one side"],
+                            correct: 0
+                        },
+                        {
+                            question: "What should you do if your voice gets tired?",
+                            answers: ["Rest and stop singing", "Sing even louder", "Whisper everything", "Drink soda"],
+                            correct: 0
+                        },
+                        {
+                            question: "What are the main voice types?",
+                            answers: ["Soprano, Alto, Tenor, Bass", "Loud, Quiet, Medium", "Fast, Slow, Normal", "High, Low, Middle"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is a melody?",
+                            answers: ["The tune of a song", "The words of a song", "The beat of a song", "The volume of a song"],
+                            correct: 0
+                        },
+                        {
+                            question: "What does it mean to sing in tune?",
+                            answers: ["Singing the right pitch/notes", "Singing very loudly", "Singing very fast", "Singing with others"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is a scale in music?",
+                            answers: ["A series of notes going up or down", "How loud to sing", "How fast to sing", "How long to sing"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is harmony in singing?",
+                            answers: ["Different voices singing different notes that sound good together", "Everyone singing the same thing", "Singing very quietly", "Singing without music"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is breath control?",
+                            answers: ["Managing your breathing while singing", "Holding your breath", "Breathing very fast", "Not breathing at all"],
+                            correct: 0
+                        },
+                        {
+                            question: "What should you avoid before singing?",
+                            answers: ["Dairy products and shouting", "Drinking water", "Standing up straight", "Practicing scales"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is diction in singing?",
+                            answers: ["How clearly you pronounce words", "How loudly you sing", "How high you sing", "How fast you sing"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is a vocal range?",
+                            answers: ["The highest and lowest notes you can sing", "How loud you can sing", "How long you can sing", "How fast you can sing"],
+                            correct: 0
+                        },
+                        {
+                            question: "What is the best way to improve your singing?",
+                            answers: ["Practice regularly and take care of your voice", "Sing as loudly as possible", "Never warm up", "Only sing when you feel like it"],
+                            correct: 0
+                        },
+                        {
+                            question: "What famous singer is known as the 'Queen of Pop'?",
+                            answers: ["Madonna", "Beethoven", "Elvis Presley", "Mozart"],
+                            correct: 0
+                        }
+                    ]
+                };
+            }
+
+            // Select 15 random questions and shuffle answers
+            prepareQuiz(instrument) {
+                this.currentInstrument = instrument;
+                const allQuestions = this.questionBank[instrument];
+                
+                // Shuffle all questions and select 15
+                const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+                this.selectedQuestions = shuffled.slice(0, 15);
+                
+                // Shuffle answers for each selected question
+                this.selectedQuestions.forEach(question => {
+                    const correctAnswer = question.answers[question.correct];
+                    const shuffledAnswers = [...question.answers].sort(() => Math.random() - 0.5);
+                    question.shuffledAnswers = shuffledAnswers;
+                    question.shuffledCorrect = shuffledAnswers.indexOf(correctAnswer);
+                });
+                
+                this.currentQuestionIndex = 0;
+                this.score = 0;
+                this.answersRevealed = false;
+            }
+
+            // Display current question
+            displayQuestion() {
+                const question = this.selectedQuestions[this.currentQuestionIndex];
+                const questionCounter = document.getElementById('questionCounter');
+                const questionText = document.getElementById('questionText');
+                const answersGrid = document.getElementById('answersGrid');
+                const nextBtn = document.getElementById('nextBtn');
+
+                questionCounter.textContent = `Question ${this.currentQuestionIndex + 1} of 15`;
+                questionText.textContent = question.question;
+                
+                answersGrid.innerHTML = '';
+                nextBtn.style.display = 'none';
+                this.answersRevealed = false;
+
+                question.shuffledAnswers.forEach((answer, index) => {
+                    const button = document.createElement('button');
+                    button.className = 'answer-btn';
+                    button.textContent = answer;
+                    button.onclick = () => this.selectAnswer(index);
+                    answersGrid.appendChild(button);
+                });
+            }
+
+            // Handle answer selection
+            selectAnswer(selectedIndex) {
+                if (this.answersRevealed) return;
+
+                const question = this.selectedQuestions[this.currentQuestionIndex];
+                const buttons = document.querySelectorAll('.answer-btn');
+                
+                this.answersRevealed = true;
+
+                if (selectedIndex === question.shuffledCorrect) {
+                    // Correct answer
+                    buttons[selectedIndex].classList.add('correct');
+                    this.score++;
+                    this.showConfetti();
+                } else {
+                    // Wrong answer
+                    buttons[selectedIndex].classList.add('wrong');
+                    buttons[question.shuffledCorrect].classList.add('correct');
+                }
+
+                // Disable all buttons
+                buttons.forEach(btn => btn.style.pointerEvents = 'none');
+                
+                // Show next button
+                setTimeout(() => {
+                    document.getElementById('nextBtn').style.display = 'block';
+                }, 1000);
+            }
+
+            // Move to next question or show results
+            nextQuestion() {
+                this.currentQuestionIndex++;
+                
+                if (this.currentQuestionIndex < this.selectedQuestions.length) {
+                    this.displayQuestion();
+                } else {
+                    this.showResults();
+                }
+            }
+
+            // Show confetti effect
+            showConfetti() {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            // Display final results
+            showResults() {
+                const finalScore = document.getElementById('finalScore');
+                const playerNickname = document.getElementById('playerNickname');
+                const encouragementText = document.getElementById('encouragementText');
+
+                finalScore.textContent = this.score;
+
+                // Random nicknames based on score
+                const nicknames = {
+                    high: ['🎵 Melody Champion!', '🌟 Music Superstar!', '🎼 Harmony Hero!', '🎯 Perfect Pitch Pro!', '🔥 Rhythm Champion!'],
+                    medium: ['🎶 Music Explorer!', '🎪 Tune Detective!', '🎨 Creative Composer!', '⭐ Rising Star!', '🎭 Musical Adventurer!'],
+                    low: ['🌱 Music Sprout!', '🎈 Beat Beginner!', '🎀 Melody Learner!', '🎡 Tune Explorer!', '🎨 Future Musician!']
+                };
+
+                const encouragements = {
+                    high: ['Outstanding! You really know your music!', 'Incredible! You\'re a natural musician!', 'Fantastic! You\'ve got musical talent!'],
+                    medium: ['Great job! You\'re learning so much!', 'Nice work! Keep practicing and you\'ll be amazing!', 'Well done! You\'re on the right track!'],
+                    low: ['Great start! Every musician starts somewhere!', 'Keep going! Practice makes perfect!', 'You\'re doing great! Music is all about having fun!']
+                };
+
+                let category;
+                if (this.score >= 12) category = 'high';
+                else if (this.score >= 7) category = 'medium';
+                else category = 'low';
+
+                const randomNickname = nicknames[category][Math.floor(Math.random() * nicknames[category].length)];
+                const randomEncouragement = encouragements[category][Math.floor(Math.random() * encouragements[category].length)];
+
+                playerNickname.textContent = randomNickname;
+                encouragementText.textContent = randomEncouragement;
+
+                this.showScreen('resultsScreen');
+                this.showConfetti();
+            }
+
+            // Screen navigation
+            showScreen(screenId) {
+                document.querySelectorAll('.screen').forEach(screen => {
+                    screen.classList.remove('active');
+                });
+                document.getElementById(screenId).classList.add('active');
+            }
+
+            // Play again with same instrument
+            playAgain() {
+                this.prepareQuiz(this.currentInstrument);
+                this.showScreen('quizScreen');
+                this.displayQuestion();
+            }
+
+            // Go back to home screen
+            goHome() {
+                this.showScreen('homeScreen');
+            }
+
+            // Generate share text based on performance
+            generateShareText() {
+                const instrumentEmojis = {
+                    piano: '🎹',
+                    ukulele: '🎸',
+                    guitar: '🎸',
+                    vocals: '🎤'
+                };
+
+                const instrumentNames = {
+                    piano: 'Piano',
+                    ukulele: 'Ukulele', 
+                    guitar: 'Guitar',
+                    vocals: 'Vocals'
+                };
+
+                const emoji = instrumentEmojis[this.currentInstrument] || '🎵';
+                const instrumentName = instrumentNames[this.currentInstrument] || 'Music';
+                const nickname = document.getElementById('playerNickname').textContent;
+                
+                let achievement = '';
+                if (this.score >= 12) {
+                    achievement = 'Absolutely crushed it! 🔥';
+                } else if (this.score >= 7) {
+                    achievement = 'Great job learning! 📚';
+                } else {
+                    achievement = 'Started my music journey! 🌱';
+                }
+
+                return {
+                    text: `🎵 Just completed the Kids Music Quiz! ${emoji}\n\n${achievement}\nScore: ${this.score}/15 on ${instrumentName}\nTitle: ${nickname}\n\nThanks to @NoteMusicIndia for this amazing learning experience! 🎼\n\n#MusicEducation #KidsLearning #${instrumentName}Quiz #NoteMusicIndia #MusicSchool #LearnMusic`,
+                    hashtags: `MusicEducation,KidsLearning,${instrumentName}Quiz,NoteMusicIndia,MusicSchool,LearnMusic`,
+                    url: window.location.href
+                };
+            }
+        }
+
+        // Initialize game
+        const game = new MusicQuiz();
+
+        // Global functions for UI interaction
+        function selectInstrument(instrument) {
+            game.prepareQuiz(instrument);
+            game.showScreen('quizScreen');
+            game.displayQuestion();
+        }
+
+        function nextQuestion() {
+            game.nextQuestion();
+        }
+
+        function playAgain() {
+            game.playAgain();
+        }
+
+        function goHome() {
+            game.goHome();
+        }
+
+        // Social sharing functions
+        function shareToLinkedIn() {
+            const shareData = game.generateShareText();
+            const url = encodeURIComponent(shareData.url);
+            const fullText = encodeURIComponent(shareData.text + '\n\nTry the quiz: ' + shareData.url);
+            
+            // LinkedIn sharing URL that opens compose dialog
+            const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}&summary=${fullText}`;
+            window.open(linkedInUrl, 'linkedin-share', 'width=700,height=600,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,status=no');
+        }
+
+        function shareToInstagram() {
+            const shareData = game.generateShareText();
+            const instagramText = shareData.text + '\n\nTry the quiz: ' + shareData.url;
+            
+            // Copy to clipboard and show instructions
+            copyToClipboard(instagramText);
+            showInstagramModal(instagramText);
+        }
+
+        function shareToTwitter() {
+            const shareData = game.generateShareText();
+            const twitterText = encodeURIComponent(shareData.text + '\n\nTry the quiz: ' + shareData.url);
+            const twitterUrl = `https://twitter.com/intent/tweet?text=${twitterText}`;
+            window.open(twitterUrl, 'twitter-share', 'width=600,height=400,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,status=no');
+        }
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).catch(() => {
+                    fallbackCopyTextToClipboard(text);
+                });
+            } else {
+                fallbackCopyTextToClipboard(text);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            textArea.style.top = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function showInstagramModal(text) {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.8); display: flex; align-items: center; 
+                justify-content: center; z-index: 10000; padding: 20px; box-sizing: border-box;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 100%; text-align: center; position: relative;">
+                    <h3 style="color: #E4405F; margin-bottom: 20px;">📸 Share on Instagram</h3>
+                    <p style="margin-bottom: 20px; color: #333;">✅ Text copied to clipboard! Follow these steps:</p>
+                    <div style="text-align: left; background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; font-family: monospace; font-size: 14px; max-height: 150px; overflow-y: auto;">
+                        ${text.replace(/\n/g, '<br>')}
+                    </div>
+                    <ol style="text-align: left; color: #666; margin: 20px 0;">
+                        <li>Click "Open Instagram" below</li>
+                        <li>Create a new post or story</li>
+                        <li>Paste the copied text</li>
+                        <li>Add a photo of your achievement!</li>
+                    </ol>
+                    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 25px;">
+                        <button onclick="window.open('https://www.instagram.com/', '_blank'); document.body.removeChild(this.closest('div').parentElement)" 
+                                style="background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); 
+                                       color: white; border: none; padding: 12px 24px; border-radius: 25px; cursor: pointer; font-weight: bold;">
+                            📱 Open Instagram
+                        </button>
+                        <button onclick="document.body.removeChild(this.closest('div').parentElement)" 
+                                style="background: #ccc; color: #666; border: none; padding: 12px 24px; border-radius: 25px; cursor: pointer;">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Close modal when clicking outside
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
